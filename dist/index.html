@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Folio: PDFs lokal bearbeiten, organisieren, schwärzen und übersetzen. Ohne Datei-Upload.">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="theme-color" content="#f4f3f0">
+  <title>Folio · Privates PDF Studio</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Folio Startseite"><span class="brand-icon">f</span><span>folio<span class="brand-dot">.</span></span><small>PDF STUDIO</small></a>
+    <div class="document-name"><span class="status-dot"></span><span id="docName">Dein privater Arbeitsbereich</span><span id="dirtyDot" hidden>•</span></div>
+    <div class="header-actions"><button class="quiet icon-only" id="themeBtn" title="Darstellung wechseln" aria-label="Darstellung wechseln"></button><button class="secondary" id="openBtn">PDF öffnen</button><button class="primary" id="exportBtn" disabled>Exportieren <span aria-hidden="true">↗</span></button></div>
+  </header>
+  <div class="shell">
+    <aside class="navigation">
+      <div class="nav-heading">DEIN WORKSPACE</div>
+      <nav aria-label="Werkzeugbereiche">
+        <button class="nav-item active" data-section="home"><span data-icon="grid"></span><span>Übersicht</span></button>
+        <button class="nav-item" data-section="edit"><span data-icon="edit"></span><span>Bearbeiten</span></button>
+        <button class="nav-item" data-section="pages"><span data-icon="pages"></span><span>Seiten organisieren</span></button>
+        <button class="nav-item" data-section="text"><span data-icon="translate"></span><span>Text & Übersetzung</span><span class="nav-tag">LOKAL</span></button>
+        <button class="nav-item" data-section="protect"><span data-icon="shield"></span><span>Export & Schutz</span></button>
+      </nav>
+      <div class="nav-divider"></div>
+      <button class="nav-item" id="newBtn"><span data-icon="plus"></span><span>Leeres Dokument</span></button>
+      <button class="nav-item" id="helpBtn"><span data-icon="info"></span><span>Hilfe & Möglichkeiten</span></button>
+      <div class="privacy-card"><span class="privacy-icon" data-icon="shield"></span><strong>Deine Dateien.<br>Dein Gerät.</strong><p>PDF-Inhalte werden lokal im Browser verarbeitet.</p><button class="text-button" id="privacyBtn">So funktioniert's <span>↗</span></button></div>
+      <div class="nav-footer"><span class="small-dot"></span> Kein Datei-Upload <span>v1.0</span></div>
+    </aside>
+    <main id="main">
+      <section id="welcome" class="welcome">
+        <div class="eyebrow"><span></span> LOKAL. UNABHÄNGIG. DEINS.</div>
+        <h1>Mehr aus deinen PDFs.<br><span>Weniger aus der Hand geben.</span></h1>
+        <p class="welcome-intro">Bearbeiten, ordnen und übersetzen – in einem ruhigen<br class="desktop-break"> Arbeitsbereich, in dem deine Dokumente bei dir bleiben.</p>
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="PDF-Dateien auswählen oder hier ablegen">
+          <div class="upload-illustration"><div class="mini-sheet back"></div><div class="mini-sheet front"><span>PDF</span><i></i><i></i><i></i></div><span class="upload-plus">+</span></div>
+          <h2>Zieh deine PDF hierher</h2><p>oder wähle eine Datei auf deinem Gerät</p>
+          <button class="primary" id="chooseBtn">Dateien auswählen <span data-icon="arrow"></span></button>
+          <small>Mehrere PDFs werden zusammengefügt · Kein Upload</small>
+        </div>
+        <div class="section-label"><h2>Alles an seinem Platz</h2><span>Dein Werkzeugkasten</span></div>
+        <div class="feature-grid">
+          <button class="feature" data-open-section="edit"><span class="feature-icon lilac" data-icon="edit"></span><h3>Inhalte bearbeiten</h3><p>Text ergänzen, korrigieren,<br>markieren und unterschreiben.</p><span class="feature-arrow">↗</span></button>
+          <button class="feature" data-open-section="pages"><span class="feature-icon peach" data-icon="pages"></span><h3>Seiten organisieren</h3><p>Zusammenfügen, trennen,<br>drehen und neu sortieren.</p><span class="feature-arrow">↗</span></button>
+          <button class="feature" data-open-section="text"><span class="feature-icon mint" data-icon="translate"></span><h3>Sprachen verbinden</h3><p>Text erkennen und lokal<br>übersetzen. DE · EN · 中文</p><span class="feature-arrow">↗</span></button>
+        </div>
+        <div class="welcome-bottom"><span data-icon="lock"></span> Kein Konto in der App. Keine Cloud-KI. Keine Analyse-Tracker.</div>
+      </section>
+      <section id="editor" class="editor" hidden>
+        <div class="editor-toolbar"><div class="toolbar-left"><button id="undoBtn" class="quiet icon-only" title="Rückgängig (Strg+Z)" aria-label="Rückgängig"></button><button id="redoBtn" class="quiet icon-only" title="Wiederholen (Strg+Umschalt+Z)" aria-label="Wiederholen"></button><span class="toolbar-divider"></span><span id="sectionTitle">Bearbeiten</span></div><div class="zoom"><button class="quiet" id="zoomOut" aria-label="Verkleinern">−</button><button class="quiet" id="fitBtn" title="An Breite anpassen">100 %</button><button class="quiet" id="zoomIn" aria-label="Vergrößern">+</button></div><button id="closeBtn" class="quiet" title="Dokument schließen">Schließen ×</button></div>
+        <div class="editor-grid">
+          <aside class="thumbnails"><div class="thumb-heading">SEITEN <span id="pageCount">0</span></div><div id="thumbList"></div></aside>
+          <div class="canvas-region"><div class="tool-hint" id="toolHint">Wähle ein Werkzeug rechts.</div><div class="canvas-scroll" id="canvasScroll"><div id="pageStage" class="page-stage"><canvas id="pdfCanvas" aria-label="PDF-Seite"></canvas><canvas id="drawCanvas" aria-label="Bereich auf der PDF-Seite auswählen"></canvas><div id="hitLayer"></div></div></div><div class="page-navigation"><button class="quiet" id="prevPage" aria-label="Vorherige Seite">←</button><label>Seite <input id="pageInput" type="number" min="1" value="1" aria-label="Aktuelle Seite"> <span id="pageTotal">von 1</span></label><button class="quiet" id="nextPage" aria-label="Nächste Seite">→</button></div></div>
+          <aside class="inspector" id="inspector" aria-label="Werkzeuge und Einstellungen"></aside>
+        </div>
+      </section>
+      <footer class="statusbar"><span id="engineStatus">PDF-Engine wird geladen …</span><span id="sessionStatus">Dokumente werden nicht automatisch gespeichert.</span><button id="offlineBtn" class="text-button">Offline vorbereiten</button></footer>
+    </main>
+  </div>
+  <input type="file" id="pdfInput" accept=".pdf,application/pdf" multiple hidden>
+  <input type="file" id="mergeInput" accept=".pdf,application/pdf" multiple hidden>
+  <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
+  <input type="file" id="imagesInput" accept="image/png,image/jpeg" multiple hidden>
+  <dialog id="dialog"><form id="dialogForm"><div class="dialog-header"><h2 id="dialogTitle"></h2><button type="button" class="quiet" id="dialogX" aria-label="Dialog schließen">×</button></div><div id="dialogBody"></div><div class="dialog-actions"><button type="button" class="secondary" id="dialogCancel">Abbrechen</button><button type="submit" class="primary" id="dialogConfirm">Übernehmen</button></div></form></dialog>
+  <div class="busy" id="busy" hidden><div><span class="spinner"></span><strong id="busyText">Wird verarbeitet …</strong><small>Auf deinem Gerät</small></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript>Folio benötigt JavaScript und WebAssembly für die lokale PDF-Verarbeitung.</noscript>
+</body>
+</html>
