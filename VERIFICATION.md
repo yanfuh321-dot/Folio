@@ -77,3 +77,17 @@ Additional limits: No live OpenRouter request with a paid key; no browser UI/end
 because the required browser capability is unavailable. No visual Word/Excel rendering in
 Microsoft Office/LibreOffice was available; editable layout fidelity must be checked there.
 No trust-chain/revocation validation, QES or trusted timestamp authority integration.
+
+# Version 2.1 · PDF layout translation
+
+- Four added test groups cover native PDF request shape, JSON validation, authoritative
+  coordinate hints, missing-region warnings, errors, cancellation and truncation.
+- A synthetic scanned Chinese certificate was translated using a fixed mock translation
+  into a labelled English PDF. Original, output, border and retained red stamp were visually
+  inspected. This verifies composition, not live AI translation accuracy.
+- Upload snapshots are single-page image PDFs, excluding source text layers, forms and metadata.
+- Export rejects overflowing fields; disabling a field preserves its original image.
+- Actual Tesseract 7 Chinese/English OCR produces local coordinate hints; separated certificate
+  lines are split even when OCR places the whole page in one paragraph.
+- No real certificate, live API key or paid model request was used. Browser interaction and
+  live model accuracy still require checking on the user's device.

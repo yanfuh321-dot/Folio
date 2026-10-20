@@ -1,6 +1,6 @@
 # Folio · Privates PDF Studio
 
-Eine lokale PDF-Web-App mit deutscher Oberfläche. Version 2.0, 20. Oktober 2026.
+Eine lokale PDF-Web-App mit deutscher Oberfläche. Version 2.1, 20. Oktober 2026.
 PDF-Werkzeuge arbeiten lokal. Optional übersetzt OpenRouter ausgewählten Text mit deinem eigenen API-Key. Keine Analyse-Tracker und keine automatische Cloud-Nutzung.
 Die App ist eine umfangreiche erste Version, kein vollständiger Acrobat-/Foxit-Ersatz.
 
@@ -59,8 +59,8 @@ Alternativ lässt sich `dist` auf jedem statischen HTTPS-Webserver bereitstellen
 5. Im Dialog den zu sendenden Text prüfen oder kürzen und `Text senden & übersetzen` wählen.
 6. Übersetzung vergleichen, korrigieren und als TXT oder neu gesetzte Text-PDF exportieren.
 
-Nur der bestätigte Text geht direkt an OpenRouter und den Modellanbieter; PDF-Datei und Bilder
-werden nicht hochgeladen. Der Key wird ausschließlich an OpenRouter gesendet, nie in URL,
+Bei der reinen Textübersetzung geht nur der bestätigte Text direkt an OpenRouter und den Modellanbieter.
+Der zusätzliche Layout-Modus überträgt ausgewählte sichtbare PDF-Seiten einschließlich Bildern. Der Key wird ausschließlich an OpenRouter gesendet, nie in URL,
 LocalStorage, Service-Worker-Cache oder Repository geschrieben. Löschen unter `OpenRouter einrichten`.
 OpenRouter kann Kosten berechnen; einen eigenen Key mit Ausgabenlimit verwenden.
 
@@ -76,8 +76,44 @@ Alternativ `Browser · lokal`: nutzt die native Translator-API, falls vorhanden.
 kann der Browser Sprachmodelle herunterladen. Ohne Unterstützung bleibt diese Option gesperrt.
 Text bleibt bei lokaler Übersetzung auf dem Gerät. OpenRouter braucht immer Internet.
 
-Übersetzungen sind neu gesetzte Textdokumente, keine layouttreue Übersetzung der Original-PDF.
+Die reine Textübersetzung erzeugt neu gesetzte Textdokumente. Für ähnliche Seitenlayouts steht der folgende PDF-Modus zur Verfügung.
 Bei zweisprachiger Ausgabe steht der vollständige Ausgangstext vor der Übersetzung.
+
+## PDF mit Layout übersetzen (Zertifikate)
+
+Unter `Text & Übersetzung → PDF mit Layout übersetzen`:
+
+1. OpenRouter-Key und ein Modell mit **nativer PDF-Eingabe und strukturierter Ausgabe** auswählen.
+   Die Modellliste wird bei Einrichtung für diesen Modus nach PDF-Unterstützung gefiltert.
+2. Seitenbereich, Ausgangs- und Zielsprache wählen (voreingestellt Chinesisch → Englisch).
+3. Mit `PDF senden & übersetzen` die Übertragung starten. Bis zu 20 Seiten pro Vorgang,
+   eine Modellanfrage pro Seite. PDF-Seiten werden als sichtbare Bild-PDF mit 144 dpi neu erstellt;
+   keine versteckten Ebenen, Metadaten, Anhänge, Formularaktionen oder Zertifikatsschlüssel.
+4. Native PDF-Textpositionen oder bei Scans lokale OCR dienen als Positionshilfe. Das KI-Modell
+   liest die PDF und liefert Übersetzungen und Textfelder. Die App setzt die Ausgabe lokal zusammen.
+5. Original und Übersetzung nebeneinander prüfen. Textfelder anklicken, Text/Farbe/Schriftgröße,
+   Position, Größe und überdeckten Originalbereich korrigieren. Manuelle Textfelder können ergänzt
+   werden. `Original behalten` erhält Logos, Stempel, Unterschriften oder bereits englische Texte.
+6. Vorschau aktualisieren und PDF herunterladen. Änderungen in der Vorschau sind lokal und
+   erzeugen keine weiteren API-Anfragen. Entwürfe bleiben nur in diesem Tab.
+
+Originalseitenbild mit Rahmen, Grafiken und Stempeln bleibt als Hintergrund erhalten. Textbereiche
+werden mit einer aus der Umgebung ermittelten oder gewählten Vollfarbe überdeckt und übersetzt.
+Keine pixelgenaue Rekonstruktion gemusterter Hintergründe; KI-Positionen und OCR können falsch sein.
+Überlappungen und kleine Schrift werden gemeldet. Überlaufende Felder verhindern den Export, bis
+sie angepasst oder bewusst im Original belassen werden. Nicht zugeordnete Bereiche werden gemeldet.
+Abbrüche erhalten fertige Seiten als klar gekennzeichnete Teilübersetzung; fehlende Seiten fehlen
+auch im Teilexport. Erneutes Starten erzeugt einen neuen Entwurf und neue Anfragen.
+
+Die Ausgabe trägt außerhalb des ursprünglichen Seitenbildes einen Hinweis `AI TRANSLATION` und
+`Not the original certificate`. Sie ersetzt weder das Original noch eine beglaubigte Übersetzung;
+vorhandene digitale Signaturen werden nicht übernommen. Zertifikatsnummern, Namen, Gültigkeit,
+Normen und Tabellen insbesondere mit dem Original vergleichen. Der Originalinhalt bleibt als
+Bild unter den Überdeckungen enthalten: Diese Funktion ist **keine Schwärzungsfunktion**.
+
+OpenRouter wird auf `file-parser: native` festgelegt; es gibt keinen automatischen Wechsel zu
+Mistral OCR/anderen PDF-Parsern. Nicht unterstützte Modelle oder ZDR-Endpunkte werden abgelehnt.
+API-Kosten und die Verfügbarkeit der ausgewählten Kombination hängen vom Anbieter ab.
 
 ## Absätze bearbeiten
 
@@ -126,8 +162,8 @@ Die signierte Kopie hat kein Öffnungspasswort. Spätere Änderungen können die
 ## Datenschutz und Offlinebetrieb
 
 - PDF-Werkzeuge, Bilder, Zertifikate, Passwörter, OCR und Office-Export bleiben im Browser.
-- Ausschließlich die bewusst gestartete OpenRouter-Übersetzung sendet bestätigten Text in die Cloud.
-- Kein PDF-Datei-Upload, keine eigene Backend-Verarbeitung, keine Tracker, keine Webfonts oder Laufzeit-CDNs.
+- Ausschließlich die bewusst gestartete OpenRouter-Übersetzung sendet bestätigten Text oder ausgewählte PDF-Seiten in die Cloud.
+- PDF-Upload nur im expliziten Layout-Übersetzungsmodus; keine eigene Backend-Verarbeitung, keine Tracker, keine Webfonts oder Laufzeit-CDNs.
 - Programmdateien und OCR-Sprachdaten kommen vom selben Host wie die App.
 - Ein expliziter Netzwerkfilter in Hauptfenster und Workern erlaubt nur GET-Anfragen auf
   bekannte Programmdateien ohne Query-Parameter. Ausschließlich im Hauptfenster sind zusätzlich

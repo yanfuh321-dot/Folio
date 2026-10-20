@@ -186,6 +186,49 @@ export class PDFEngine {
       return layout;
     }finally{p.destroy();}}finally{d.destroy();}
   }
+  translationPage({index,dpi=144}){
+    const rendered=this.render({index,scale:Math.min(3,Math.max(1,dpi/72)),details:false,format:'png'});
+    const layout=this.withPage(index,p=>pageLayout(p,true));
+    const width=rendered.bounds[2]-rendered.bounds[0],height=rendered.bounds[3]-rendered.bounds[1];
+    // A new visual PDF snapshot contains only this visible page, without hidden text or attachments.
+    const d=new mupdf.PDFDocument();try{makeImagePage(d,rendered.bytes,width,height);return {page:index+1,width,height,pixelWidth:rendered.width,pixelHeight:rendered.height,image:rendered.bytes,pdf:saveBytes(d),layout};}finally{d.destroy();}
+  }
+  translatedDocument({pages,target='en',preview=false}){
+    if(!Array.isArray(pages)||!pages.length||pages.length>20)throw Error('Bitte 1 bis 20 Seiten für die Layout-Übersetzung wählen.');
+    const d=new mupdf.PDFDocument(),issues=[];let previewBytes;
+    try{for(const [pi,source] of pages.entries()){
+      const {width:w,height:h,image,blocks}=source,footer=24;
+      if(!Number.isFinite(w)||!Number.isFinite(h)||w<20||h<20||w>3000||h>3000||!Array.isArray(blocks)||blocks.length>360)throw Error('Ungültige Übersetzungsseite.');
+      const im=new mupdf.Image(image),pix=im.toPixmap(),pixels=pix.getPixels(),pw=pix.getWidth(),ph=pix.getHeight(),stride=pix.getStride(),nc=pix.getNumberOfComponents();
+      const background=r=>{
+        const samples=[];for(let i=0;i<16;i++){const t=i/15;for(const [x,y] of [[r[0]+t*(r[2]-r[0]),r[1]-1],[r[0]+t*(r[2]-r[0]),r[3]+1]]){const ix=Math.max(0,Math.min(pw-1,Math.round(x/w*pw))),iy=Math.max(0,Math.min(ph-1,Math.round(y/h*ph))),off=iy*stride+ix*nc;const c=nc<3?[pixels[off],pixels[off],pixels[off]]:[pixels[off],pixels[off+1],pixels[off+2]];samples.push(c);}}
+        samples.sort((a,b)=>a.reduce((s,v)=>s+v,0)-b.reduce((s,v)=>s+v,0));return samples[Math.floor(samples.length*.7)].map(v=>v/255);
+      };
+      const validRect=r=>Array.isArray(r)&&r.length===4&&r.every(Number.isFinite)&&r[0]>=0&&r[1]>=0&&r[2]<=w+.1&&r[3]<=h+.1&&r[2]>r[0]&&r[3]>r[1];
+      let contents=`q ${w} 0 0 ${h} 0 ${footer} cm /Im Do Q\n`;const ready=[];
+      for(const b of blocks.filter(b=>b.enabled)){
+        try{
+          if(!validRect(b.rect)||!validRect(b.sourceRect)||typeof b.text!=='string'||!b.text.trim()||b.text.length>12000||!Number.isFinite(b.size)||b.size<6||b.size>48||!/^#[a-f0-9]{6}$/i.test(b.color)||!(b.background==='auto'||/^#[a-f0-9]{6}$/i.test(b.background)))throw Error('Text, Farbe oder Rahmen ungültig.');
+          const l=textLayout(b.text,b.rect,b.size,'Helvetica',true),size=l.size;l.destroy();
+          ready.push({...b,size});if(size<8)issues.push({page:source.page,id:b.id,severity:'warning',message:'Sehr kleine Schrift unter 8 pt. Textfeld gegebenenfalls vergrößern.'});
+          const r=b.sourceRect,c=b.background==='auto'?background(r):hexColor(b.background);
+          contents+=`q ${c.join(' ')} rg ${r[0]} ${h+footer-r[3]} ${r[2]-r[0]} ${r[3]-r[1]} re f Q\n`;
+        }catch(e){issues.push({page:source.page,id:b.id,severity:'error',message:e.message});}
+      }
+      for(let i=0;i<ready.length;i++)for(let j=i+1;j<ready.length;j++){const a=ready[i].rect,b=ready[j].rect,dx=Math.min(a[2],b[2])-Math.max(a[0],b[0]),dy=Math.min(a[3],b[3])-Math.max(a[1],b[1]);if(dx>2&&dy>2)issues.push({page:source.page,id:ready[j].id,severity:'warning',message:'Übersetzte Textfelder überlappen. Bitte Positionen prüfen.'});}
+      const ref=d.addImage(im),obj=d.addPage([0,0,w,h+footer],0,{XObject:{Im:ref}},contents);d.insertPage(-1,obj);obj.destroy();ref.destroy();pix.destroy();im.destroy();
+      const p=d.loadPage(pi);try{
+        for(const b of ready)placeText(p,b.text,b.rect,b.size,b.color,'Helvetica',false,1,b.align);
+        const label=`AI TRANSLATION (${String(target).replace(/[^a-z-]/gi,'').toUpperCase()}) | Original page ${source.page||pi+1} | Not the original certificate`;
+        placeText(p,label,[8,h+5,w-8,h+22],8,'#555555','Helvetica',true);
+        if(preview&&pi===0){const px=p.toPixmap(mupdf.Matrix.scale(Math.min(1.5,1400/Math.max(w,h)),Math.min(1.5,1400/Math.max(w,h))),mupdf.ColorSpace.DeviceRGB,false,true);previewBytes=px.asPNG().slice();px.destroy();}
+      }finally{p.destroy();}
+    }
+    d.setMetaData('info:Title','AI translation - review against original');d.setMetaData('info:Subject','Translated visual copy. Not an original certificate. Original digital signatures are not retained.');d.bake(true,true);
+    return {bytes:saveBytes(d),image:previewBytes,issues};
+    }finally{d.destroy();}
+  }
+
   textPDF({text,title='Textausgabe'}){
     const d=new mupdf.PDFDocument();
     try{

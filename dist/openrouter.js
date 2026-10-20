@@ -1,4 +1,4 @@
-// The only cloud feature. No storage, logging, file upload or automatic requests.
+// Explicit cloud translation. No storage, logging or automatic requests.
 export const OPENROUTER='https://openrouter.ai/api/v1/';
 export function splitTranslation(text,max=5000){
   const parts=[];let remaining=text;
@@ -8,7 +8,7 @@ export function splitTranslation(text,max=5000){
 export async function listModels(fetcher=fetch){
   const res=await fetcher(OPENROUTER+'models',{method:'GET',credentials:'omit',referrerPolicy:'no-referrer',redirect:'error',signal:AbortSignal.timeout(30000)});
   if(!res.ok)throw Error('Modellliste nicht erreichbar. Modell-ID kann manuell eingegeben werden.');
-  const json=await res.json();return (json.data||[]).filter(m=>m.architecture?.output_modalities?.includes('text')&&m.architecture?.input_modalities?.includes('text')).map(m=>({id:m.id,name:m.name,input:+m.pricing?.prompt*1e6,output:+m.pricing?.completion*1e6})).sort((a,b)=>a.id.localeCompare(b.id));
+  const json=await res.json();return (json.data||[]).filter(m=>m.architecture?.output_modalities?.includes('text')&&m.architecture?.input_modalities?.includes('text')).map(m=>({id:m.id,name:m.name,modalities:m.architecture?.input_modalities||[],structured:(m.supported_parameters||[]).includes('structured_outputs'),input:+m.pricing?.prompt*1e6,output:+m.pricing?.completion*1e6})).sort((a,b)=>a.id.localeCompare(b.id));
 }
 export async function translateCloud({text,key,model,source,target,zdr=true,signal,onProgress=()=>{}},fetcher=fetch){
   if(!key?.trim()||!model?.trim())throw Error('Bitte OpenRouter-Key und Modell eintragen.');
