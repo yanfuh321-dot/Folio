@@ -20,7 +20,7 @@ Build date: 2026-10-19. No personal documents were used.
 - Drawing, shapes, notes, image stamps, watermarks, numbers and metadata.
 - Selectable German, English and Chinese text in newly typeset text-PDF exports.
 - Atomic failure when a replacement does not fit; original content remains.
-- Network guard blocks remote paths, arbitrary same-origin paths, query strings, POST,
+- Version 1.0 network guard blocked remote paths, arbitrary same-origin paths, query strings, POST,
   request bodies, custom headers, WebSockets and beacons.
 - Offline asset manifest resolves to actual program files and excludes PDFs.
 - Bundled OCR models for English, German and Chinese recognize synthetic local images,
@@ -51,3 +51,29 @@ Open a non-confidential sample PDF. Add text, replace one line, draw a shape, fi
 rotate a page and export. Reopen the export in a separate PDF viewer. Then try OCR,
 the desired translation pair, and Offline vorbereiten. Disconnect the network and reopen
 the app to confirm the intended offline workflow on that device.
+
+# Version 2.0 extension verification · 2026-10-20
+
+The complete test suite now covers 22 groups including the original regressions and:
+
+- Paragraph removal/replacement, movement, wrapping, Latin/CJK, alignment, re-editing,
+  undo and atomic overflow failure. The resulting PDF was rendered and visually inspected.
+- Office export does not mutate the active PDF. Word packages contain editable VML textboxes
+  and a background with horizontal text removed; visual mode embeds page images.
+- Independent python-docx/lxml checks read multi-section Word packages and their XML.
+  openpyxl opens cell-based and image-based workbooks. Table rows/columns, leading zeros,
+  numeric conversion and formula-like text remain correctly typed.
+- OpenRouter payloads, strict provider policy, no-cookie/no-redirect behavior, chunking,
+  partial results, cancellation and output truncation detection tested with mocked HTTP.
+- Guard allows only the exact two OpenRouter endpoints in the main window. Workers cannot
+  access them. Other egress remains blocked. API keys and document data are not persisted.
+- The actual browser signing bundle reads a synthetic RSA P12, rejects its wrong password,
+  generates a detached CMS/SHA-256 signature and rejects a second signature.
+- OpenSSL independently verifies the PDF's ByteRange/CMS signature. Deliberate modification
+  fails verification. This validates integrity, not certificate trust (test cert is self-signed).
+- PKCS#12 is synthetic test material and is never included in the app or GitHub ZIP.
+
+Additional limits: No live OpenRouter request with a paid key; no browser UI/end-to-end test
+because the required browser capability is unavailable. No visual Word/Excel rendering in
+Microsoft Office/LibreOffice was available; editable layout fidelity must be checked there.
+No trust-chain/revocation validation, QES or trusted timestamp authority integration.

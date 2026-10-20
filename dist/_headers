@@ -3,4 +3,4 @@
   Referrer-Policy: no-referrer
   Cross-Origin-Resource-Policy: same-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' https://openrouter.ai/api/v1/models https://openrouter.ai/api/v1/chat/completions; worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'

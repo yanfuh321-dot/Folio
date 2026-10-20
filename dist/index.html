@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Folio: PDFs lokal bearbeiten, organisieren, schwärzen und übersetzen. Ohne Datei-Upload.">
+  <meta name="description" content="Folio: PDFs lokal bearbeiten, organisieren, schwärzen und übersetzen. Mit optionaler OpenRouter-KI.">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' https://openrouter.ai/api/v1/models https://openrouter.ai/api/v1/chat/completions; worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="theme-color" content="#f4f3f0">
   <title>Folio · Privates PDF Studio</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
@@ -32,8 +32,8 @@
       <div class="nav-divider"></div>
       <button class="nav-item" id="newBtn"><span data-icon="plus"></span><span>Leeres Dokument</span></button>
       <button class="nav-item" id="helpBtn"><span data-icon="info"></span><span>Hilfe & Möglichkeiten</span></button>
-      <div class="privacy-card"><span class="privacy-icon" data-icon="shield"></span><strong>Deine Dateien.<br>Dein Gerät.</strong><p>PDF-Inhalte werden lokal im Browser verarbeitet.</p><button class="text-button" id="privacyBtn">So funktioniert's <span>↗</span></button></div>
-      <div class="nav-footer"><span class="small-dot"></span> Kein Datei-Upload <span>v1.0</span></div>
+      <div class="privacy-card"><span class="privacy-icon" data-icon="shield"></span><strong>Deine Dateien.<br>Dein Gerät.</strong><p>PDF-Werkzeuge bleiben lokal. KI-Übersetzung nur nach deiner Freigabe.</p><button class="text-button" id="privacyBtn">So funktioniert's <span>↗</span></button></div>
+      <div class="nav-footer"><span class="small-dot"></span> KI optional <span>v2.0</span></div>
     </aside>
     <main id="main">
       <section id="welcome" class="welcome">
@@ -50,9 +50,9 @@
         <div class="feature-grid">
           <button class="feature" data-open-section="edit"><span class="feature-icon lilac" data-icon="edit"></span><h3>Inhalte bearbeiten</h3><p>Text ergänzen, korrigieren,<br>markieren und unterschreiben.</p><span class="feature-arrow">↗</span></button>
           <button class="feature" data-open-section="pages"><span class="feature-icon peach" data-icon="pages"></span><h3>Seiten organisieren</h3><p>Zusammenfügen, trennen,<br>drehen und neu sortieren.</p><span class="feature-arrow">↗</span></button>
-          <button class="feature" data-open-section="text"><span class="feature-icon mint" data-icon="translate"></span><h3>Sprachen verbinden</h3><p>Text erkennen und lokal<br>übersetzen. DE · EN · 中文</p><span class="feature-arrow">↗</span></button>
+          <button class="feature" data-open-section="text"><span class="feature-icon mint" data-icon="translate"></span><h3>Sprachen verbinden</h3><p>Text erkennen und mit KI<br>oder lokal übersetzen. DE · EN · 中文</p><span class="feature-arrow">↗</span></button>
         </div>
-        <div class="welcome-bottom"><span data-icon="lock"></span> Kein Konto in der App. Keine Cloud-KI. Keine Analyse-Tracker.</div>
+        <div class="welcome-bottom"><span data-icon="lock"></span> Kein Konto in der App. Cloud-KI nur auf Wunsch. Keine Analyse-Tracker.</div>
       </section>
       <section id="editor" class="editor" hidden>
         <div class="editor-toolbar"><div class="toolbar-left"><button id="undoBtn" class="quiet icon-only" title="Rückgängig (Strg+Z)" aria-label="Rückgängig"></button><button id="redoBtn" class="quiet icon-only" title="Wiederholen (Strg+Umschalt+Z)" aria-label="Wiederholen"></button><span class="toolbar-divider"></span><span id="sectionTitle">Bearbeiten</span></div><div class="zoom"><button class="quiet" id="zoomOut" aria-label="Verkleinern">−</button><button class="quiet" id="fitBtn" title="An Breite anpassen">100 %</button><button class="quiet" id="zoomIn" aria-label="Vergrößern">+</button></div><button id="closeBtn" class="quiet" title="Dokument schließen">Schließen ×</button></div>
@@ -70,7 +70,7 @@
   <input type="file" id="imageInput" accept="image/png,image/jpeg" hidden>
   <input type="file" id="imagesInput" accept="image/png,image/jpeg" multiple hidden>
   <dialog id="dialog"><form id="dialogForm"><div class="dialog-header"><h2 id="dialogTitle"></h2><button type="button" class="quiet" id="dialogX" aria-label="Dialog schließen">×</button></div><div id="dialogBody"></div><div class="dialog-actions"><button type="button" class="secondary" id="dialogCancel">Abbrechen</button><button type="submit" class="primary" id="dialogConfirm">Übernehmen</button></div></form></dialog>
-  <div class="busy" id="busy" hidden><div><span class="spinner"></span><strong id="busyText">Wird verarbeitet …</strong><small>Auf deinem Gerät</small></div></div>
+  <div class="busy" id="busy" hidden><div><span class="spinner"></span><strong id="busyText">Wird verarbeitet …</strong><small id="busyContext">Auf deinem Gerät</small><button type="button" class="secondary" id="cancelCloud" hidden>Übersetzung abbrechen</button></div></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <noscript>Folio benötigt JavaScript und WebAssembly für die lokale PDF-Verarbeitung.</noscript>
 </body>

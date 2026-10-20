@@ -43,12 +43,12 @@ function textLayout(text, rect, wantedSize = 14, family = 'Helvetica', fit = fal
   if(lines.length*size*1.25 > rect[3]-rect[1]+1){latin.destroy();cjk.destroy();throw Error('Der Text passt nicht in den Bereich. Größeren Rahmen oder kleinere Schrift wählen.');}
   return {size,lines,fontFor,destroy(){latin.destroy();cjk.destroy();}};
 }
-function placeText(page, text, rect, size=14, color='#252435', family='Helvetica', fit=false, opacity=1) {
+function placeText(page, text, rect, size=14, color='#252435', family='Helvetica', fit=false, opacity=1,align='left',lineHeight=1.25) {
   const l=textLayout(text,rect,size,family,fit);
   const list=new mupdf.DisplayList(rect), dev=new mupdf.DisplayListDevice(list);
   try {
     l.lines.forEach((line,i)=>{
-      let x=rect[0]+2;const y=rect[1]+l.size+i*l.size*1.25;
+      const lineWidth=[...line].reduce((sum,c)=>{const f=l.fontFor(c);return sum+f.advanceGlyph(f.encodeCharacter(c.codePointAt(0)))*l.size;},0);let x=align==='right'?rect[2]-2-lineWidth:align==='center'?(rect[0]+rect[2]-lineWidth)/2:rect[0]+2;const y=rect[1]+l.size+i*l.size*lineHeight;
       const t=new mupdf.Text();
       for(const c of line){const f=l.fontFor(c);const g=f.encodeCharacter(c.codePointAt(0));t.showGlyph(f,[l.size,0,0,-l.size,x,y],g,c.codePointAt(0));x+=f.advanceGlyph(g)*l.size;}
       dev.fillText(t,mupdf.Matrix.identity,mupdf.ColorSpace.DeviceRGB,hexColor(color),1);t.destroy();
@@ -65,6 +65,11 @@ function makeImagePage(d, bytes, width, height) {
   const obj=d.addPage([0,0,width,height],0,{XObject:{Im:ref}},`q ${width} 0 0 ${height} 0 0 cm /Im Do Q`);
   d.insertPage(-1,obj);obj.destroy();ref.destroy();img.destroy();
 }
+function pageLayout(p,annotations=false){
+  const list=annotations?p.toDisplayList(true):null,st=list?list.toStructuredText(''):p.toStructuredText('');
+  const blocks=[];let block,line;
+  try{st.walk({beginTextBlock(rect){block={rect,text:'',lines:[],size:12,horizontal:true};},beginLine(rect,wmode,dir){line={rect,text:'',chars:[],size:12,font:'Arial',color:'#000000',horizontal:!wmode&&Math.abs(dir[1])<0.05};},onChar(c,origin,font,size,quad,color){line.text+=c;line.size=size;line.font=font.getName();line.color='#'+color.slice(0,3).map(v=>Math.round(Math.max(0,Math.min(1,v))*255).toString(16).padStart(2,'0')).join('');line.chars.push({c,x:Math.min(quad[0],quad[2],quad[4],quad[6]),right:Math.max(quad[0],quad[2],quad[4],quad[6]),y:origin[1]});},endLine(){if(line.text.trim()){block.lines.push(line);block.text+=(block.text?'\n':'')+line.text;block.size=line.size;block.horizontal&&=line.horizontal;}},endTextBlock(){if(block.text.trim())blocks.push(block);}});return {bounds:p.getBounds(),blocks,lines:blocks.flatMap(b=>b.lines)};}finally{st.destroy();list?.destroy();}
+}
 export class PDFEngine {
   doc=null; redacted=false;
   close(){this.doc?.destroy();this.doc=null;this.redacted=false;mupdf.emptyStore();return true;}
@@ -77,7 +82,12 @@ export class PDFEngine {
   newDocument(){this.close();this.doc=new mupdf.PDFDocument();this.doc.insertPage(-1,this.doc.addPage([0,0,595,842],0,{},''));this.doc.enableJournal();return this.info();}
   info(){
     const d=this.doc;if(!d)throw Error('Bitte zuerst eine PDF öffnen.');
-    return {count:d.countPages(),undo:d.canUndo(),redo:d.canRedo(),redacted:this.redacted,title:d.getMetaData('info:Title')||'',author:d.getMetaData('info:Author')||'',subject:d.getMetaData('info:Subject')||'',outline:d.loadOutline()||[],encrypted:d.getMetaData('encryption')||''};
+    return {count:d.countPages(),undo:d.canUndo(),redo:d.canRedo(),redacted:this.redacted,title:d.getMetaData('info:Title')||'',author:d.getMetaData('info:Author')||'',subject:d.getMetaData('info:Subject')||'',outline:d.loadOutline()||[],signed:this.hasSignatures(),encrypted:d.getMetaData('encryption')||''};
+  }
+  hasSignatures(){
+    const get=(o,k)=>o?.isDictionary()?o.get(k):null;
+    const visit=(fields,depth=0)=>{if(!fields?.isArray()||depth>30)return false;for(let i=0;i<fields.length;i++){const field=fields.get(i);if(get(get(field,'V'),'ByteRange')?.isArray())return true;if(visit(get(field,'Kids'),depth+1))return true;}return false;};
+    return visit(get(get(get(this.doc.getTrailer(),'Root'),'AcroForm'),'Fields'));
   }
   transaction(label, fn){
     if(!this.doc)throw Error('Bitte zuerst eine PDF öffnen.');
@@ -94,9 +104,8 @@ export class PDFEngine {
       const bytes=(format==='jpg'?pix.asJPEG(quality):pix.asPNG()).slice();
       const result={bytes,bounds,width:pix.getWidth(),height:pix.getHeight(),lines:[],annotations:[],fields:[]};pix.destroy();
       if(details){
-        const st=p.toStructuredText('');let line;
-        st.walk({beginLine(bbox,wmode,dir){line={rect:bbox,text:'',size:12,horizontal:Math.abs(dir[1])<0.05};},onChar(c,origin,font,size){line.text+=c;line.size=size;},endLine(){if(line.text.trim())result.lines.push(line);}});st.destroy();
-        result.annotations=p.getAnnotations().map((a,i)=>({index:i,type:a.getType(),rect:a.getBounds(),text:a.getContents()}));
+        const layout=pageLayout(p);result.lines=layout.lines;result.blocks=layout.blocks;
+        result.annotations=p.getAnnotations().map((a,i)=>({index:i,type:a.getType(),rect:a.getBounds(),text:a.getContents(),size:a.getType()==='FreeText'?a.getDefaultAppearance().size:12}));
         result.fields=p.getWidgets().map((a,i)=>({index:i,type:a.getFieldType(),rect:a.getBounds(),label:a.getLabel()||a.getName()||`Feld ${i+1}`,value:a.getValue(),readOnly:a.isReadOnly(),options:a.isChoice()?a.getOptions():[],checkbox:a.isCheckbox(),radio:a.isRadioButton(),multiline:a.isMultiline()}));
       }return result;
     });
@@ -104,6 +113,14 @@ export class PDFEngine {
   text({pages}){return (pages||allPages(this.doc)).map(i=>this.withPage(i,p=>{const list=p.toDisplayList(true);const t=list.toStructuredText('');const text=t.asText();t.destroy();list.destroy();return {page:i+1,text};}));}
   search({needle}){const hits=[];for(let i=0;i<this.doc.countPages();i++)this.withPage(i,p=>{for(const quads of p.search(needle))hits.push({page:i,quads});});return hits;}
   annotate(a){return this.transaction('Anmerkung',()=>this.withPage(a.index,p=>{
+    if(a.kind==='paragraph'){
+      if(!a.rect?.every(Number.isFinite)||a.rect[2]-a.rect[0]<10||a.rect[3]-a.rect[1]<10||!Number.isFinite(a.size)||a.size<6||a.size>96)throw Error('Ungültiger Textrahmen oder Schriftgröße.');
+      const b=p.getBounds();if(a.rect[0]<b[0]||a.rect[1]<b[1]||a.rect[2]>b[2]+.1||a.rect[3]>b[3]+.1)throw Error('Der Textrahmen muss innerhalb der Seite liegen.');
+      const l=textLayout(a.text,a.rect,a.size,a.family,!!a.fit);l.destroy();
+      if(Number.isInteger(a.annotation)){const old=p.getAnnotations()[a.annotation];if(old?.getType()!=='FreeText')throw Error('Textfeld nicht mehr vorhanden.');p.deleteAnnotation(old);}
+      else if(a.oldRect){const r=p.createAnnotation('Redact');r.setRect(a.oldRect);r.update();p.applyRedactions(false,mupdf.PDFPage.REDACT_IMAGE_NONE,mupdf.PDFPage.REDACT_LINE_ART_NONE,mupdf.PDFPage.REDACT_TEXT_REMOVE);}
+      placeText(p,a.text,a.rect,a.size,a.color,a.family,!!a.fit,1,a.align);return;
+    }
     if(a.kind==='text'){placeText(p,a.text,a.rect,a.size,a.color,a.family,a.fit);return;}
     if(a.kind==='replace'){
       const l=textLayout(a.text,a.rect,a.size,a.family,true);l.destroy();
@@ -160,6 +177,14 @@ export class PDFEngine {
       const options='compress,compress-fonts,compress-images,garbage=4'+(password?`,encrypt=aes-256,user-password=${password},owner-password=${password}`:',encrypt=none');
       return saveBytes(d,options);
     }finally{d.destroy();}
+  }
+  officePage({index,background=false,visual=false}){
+    if(visual){const r=this.render({index,scale:2,details:false});return {bounds:r.bounds,image:r.bytes,blocks:[],lines:[]};}
+    const d=new mupdf.PDFDocument(saveBytes(this.doc));
+    try{d.disableJS();d.bake(true,true);const p=d.loadPage(index);try{const layout=pageLayout(p);
+      if(background){for(const line of layout.lines.filter(l=>l.horizontal)){const a=p.createAnnotation('Redact');a.setRect(line.rect);a.update();}p.applyRedactions(false,mupdf.PDFPage.REDACT_IMAGE_NONE,mupdf.PDFPage.REDACT_LINE_ART_NONE,mupdf.PDFPage.REDACT_TEXT_REMOVE);const pix=p.toPixmap(mupdf.Matrix.scale(1.5,1.5),mupdf.ColorSpace.DeviceRGB,false,true);layout.image=pix.asPNG().slice();pix.destroy();}
+      return layout;
+    }finally{p.destroy();}}finally{d.destroy();}
   }
   textPDF({text,title='Textausgabe'}){
     const d=new mupdf.PDFDocument();

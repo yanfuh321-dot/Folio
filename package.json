@@ -1,1 +1,26 @@
-{"name":"folio-local-pdf","version":"1.0.0","private":true,"type":"module","license":"AGPL-3.0-only","dependencies":{"mupdf":"1.28.1","tesseract.js":"7.0.0","@tesseract.js-data/eng":"1.0.0","@tesseract.js-data/deu":"1.0.0","@tesseract.js-data/chi_sim":"1.0.0","fflate":"0.8.2"}}
+{
+  "name": "folio-local-pdf",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "@signpdf/placeholder-pdf-lib": "3.3.0",
+    "@signpdf/signer-p12": "3.3.0",
+    "@signpdf/signpdf": "3.3.0",
+    "@tesseract.js-data/chi_sim": "1.0.0",
+    "@tesseract.js-data/deu": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
+    "buffer": "6.0.3",
+    "esbuild": "0.28.2",
+    "fflate": "0.8.2",
+    "mupdf": "1.28.1",
+    "node-forge": "1.4.0",
+    "pdf-lib": "1.17.1",
+    "tesseract.js": "7.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/vendor.mjs && node scripts/build-signing.mjs && node scripts/package.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
